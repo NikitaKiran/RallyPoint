@@ -11,6 +11,15 @@ const SchedulingPanel = ({ tournament, categories }) => {
   const [success, setSuccess] = useState('');
   const [showManualForm, setShowManualForm] = useState(false);
   const [editingMatch, setEditingMatch] = useState(null);
+  const [showScheduleOptions, setShowScheduleOptions] = useState(false);
+  const [scheduleOptions, setScheduleOptions] = useState({
+    startDate: tournament?.startDate ? new Date(tournament.startDate).toISOString().split('T')[0] : '',
+    endDate: tournament?.endDate ? new Date(tournament.endDate).toISOString().split('T')[0] : '',
+    numberOfCourts: tournament?.numberOfCourts || 4,
+    startTime: '08:00',
+    endTime: '20:00',
+    matchDuration: 60 // minutes
+  });
 
   // Manual match form state
   const [manualMatchData, setManualMatchData] = useState({
@@ -47,20 +56,27 @@ const SchedulingPanel = ({ tournament, categories }) => {
     }
   };
 
-  const handleAutoSchedule = async () => {
+  const handleShowScheduleOptions = () => {
     if (!selectedCategory || !selectedStage) {
       setError('Please select a category and stage');
       return;
     }
+    setShowScheduleOptions(true);
+  };
 
+  const handleAutoSchedule = async () => {
     setLoading(true);
     setError('');
     setSuccess('');
+    setShowScheduleOptions(false);
 
     try {
       const response = await scheduleMatches({
         categoryId: selectedCategory,
-        stageName: selectedStage
+        stageName: selectedStage,
+        startDate: scheduleOptions.startDate,
+        endDate: scheduleOptions.endDate,
+        numberOfCourts: scheduleOptions.numberOfCourts
       });
 
       setSuccess(`Successfully generated ${response.data.count} matches for ${response.data.format} format`);
@@ -246,7 +262,7 @@ const SchedulingPanel = ({ tournament, categories }) => {
       {/* Action Buttons */}
       <div className="flex gap-4 mb-6">
         <button
-          onClick={handleAutoSchedule}
+          onClick={handleShowScheduleOptions}
           disabled={!selectedCategory || !selectedStage || loading}
           className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
@@ -479,6 +495,121 @@ const SchedulingPanel = ({ tournament, categories }) => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Options Modal */}
+      {showScheduleOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Schedule Options
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={scheduleOptions.startDate}
+                  onChange={(e) => setScheduleOptions({...scheduleOptions, startDate: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={scheduleOptions.endDate}
+                  onChange={(e) => setScheduleOptions({...scheduleOptions, endDate: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Number of Courts
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={scheduleOptions.numberOfCourts}
+                  onChange={(e) => setScheduleOptions({...scheduleOptions, numberOfCourts: parseInt(e.target.value) || 1})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Matches will be distributed across available courts
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    value={scheduleOptions.startTime}
+                    onChange={(e) => setScheduleOptions({...scheduleOptions, startTime: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    value={scheduleOptions.endTime}
+                    onChange={(e) => setScheduleOptions({...scheduleOptions, endTime: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Match Duration (minutes)
+                </label>
+                <input
+                  type="number"
+                  min="30"
+                  max="180"
+                  step="15"
+                  value={scheduleOptions.matchDuration}
+                  onChange={(e) => setScheduleOptions({...scheduleOptions, matchDuration: parseInt(e.target.value) || 60})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Estimated time per match including breaks
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAutoSchedule}
+                disabled={loading}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-gray-400"
+              >
+                {loading ? 'Generating...' : 'Generate Schedule'}
+              </button>
+              <button
+                onClick={() => setShowScheduleOptions(false)}
+                disabled={loading}
+                className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-semibold py-2 px-4 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
