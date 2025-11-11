@@ -1,0 +1,6 @@
+name,email,password,role
+John Doe,john.doe@example.com,password123,player
+Jane Smith,jane.smith@example.com,password123,player
+Mike Johnson,mike.johnson@example.com,password123,player
+Sarah Williams,sarah.williams@example.com,password123,player
+Admin User,admin@example.com,admin123,organiser
